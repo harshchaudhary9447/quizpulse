@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" fill="none">
+  <defs>
+    <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+  </defs>
+  <!-- Icon Badge -->
+  <rect x="6" y="8" width="44" height="44" rx="14" fill="url(#logo-grad)" />
+  <path d="M30 15L19 31H28L26 45L37 29H28L30 15Z" fill="white" />
+  <!-- Brand Text -->
+  <text x="60" y="38" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="28" fill="#1e293b">Quiz<tspan fill="#4f46e5">Pulse</tspan></text>
+</svg>
