@@ -1,35 +1,36 @@
 {
-  "name": "quizpulse-monorepo",
+  "name": "quizpulse",
   "version": "1.0.0",
   "private": true,
-  "description": "QuizPulse - Modern Mobile-First Online Quiz & Assessment Platform",
-  "workspaces": [
-    "server",
-    "client"
-  ],
   "scripts": {
-    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "npm run dev --prefix server",
-    "dev:client": "npm run dev --prefix client",
-    "start": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run start:server\" \"npm run start:client\"",
-    "start:server": "npm run start --prefix server",
-    "start:client": "npm run start --prefix client",
-    "build": "cd client && npm run build",
-    "seed": "npm run seed --prefix server",
-    "test": "npm run test --prefix server"
+    "dev": "next dev -p 3000",
+    "build": "prisma generate && next build",
+    "start": "next start -p 3000",
+    "lint": "next lint",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.10.0",
+    "@prisma/client": "^5.22.0",
+    "axios": "^1.7.9",
+    "bcryptjs": "^2.4.3",
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^0.475.0",
+    "next": "^14.2.24",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.54.2",
+    "recharts": "^2.15.1",
+    "socket.io-client": "^4.8.1",
+    "tailwind-merge": "^2.6.0",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
-    "concurrently": "^9.2.5"
-  },
-  "keywords": [
-    "quiz",
-    "assessment",
-    "education",
-    "nextjs",
-    "express",
-    "prisma",
-    "socketio"
-  ],
-  "author": "QuizPulse Team",
-  "license": "MIT"
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.2",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.17"
+  }
 }
