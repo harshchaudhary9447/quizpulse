@@ -1,0 +1,35 @@
+{
+  "name": "quizpulse-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QuizPulse - Modern Mobile-First Online Quiz & Assessment Platform",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "start": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run start:server\" \"npm run start:client\"",
+    "start:server": "npm run start --prefix server",
+    "start:client": "npm run start --prefix client",
+    "build": "npm run build --prefix server && npm run build --prefix client",
+    "seed": "npm run seed --prefix server",
+    "test": "npm run test --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.5"
+  },
+  "keywords": [
+    "quiz",
+    "assessment",
+    "education",
+    "nextjs",
+    "express",
+    "prisma",
+    "socketio"
+  ],
+  "author": "QuizPulse Team",
+  "license": "MIT"
+}

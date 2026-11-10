@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  role         String        @default("STUDENT") // ADMIN, TEACHER, STUDENT
+  avatarUrl    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  quizzes      Quiz[]        @relation("TeacherQuizzes")
+  questions    Question[]    @relation("CreatedQuestions")
+  attempts     Attempt[]     @relation("StudentAttempts")
+  liveSessions LiveSession[] @relation("HostLiveSessions")
+
+  @@index([role])
+}
+
+model Question {
+  id          String         @id @default(uuid())
+  text        String
+  explanation String?
+  type        String         @default("SINGLE_CHOICE") // SINGLE_CHOICE, MULTI_SELECT, TRUE_FALSE, SHORT_ANSWER
+  difficulty  String         @default("MEDIUM")        // EASY, MEDIUM, HARD
+  category    String         @default("General")
+  tags        String         @default("[]")            // JSON string array of tags
+  createdById String
+  createdBy   User           @relation("CreatedQuestions", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  options       Option[]
+  quizQuestions QuizQuestion[]
+  answers       Answer[]
+
+  @@index([category, difficulty, type])
+}
+
+model Option {
+  id         String   @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  isCorrect  Boolean  @default(false)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([questionId])
+}
+
+model Quiz {
+  id                 String         @id @default(uuid())
+  title              String
+  description        String?
+  timeLimitMinutes   Int            @default(15) // 0 for unlimited
+  passPercentage     Float          @default(60.0)
+  shuffleQuestions   Boolean        @default(false)
+  shuffleOptions     Boolean        @default(false)
+  isPublished        Boolean        @default(false)
+  scheduledStartTime DateTime?
+  scheduledEndTime   DateTime?
+  accessCode         String?
+  maxAttempts        Int            @default(1)
+  createdById        String
+  createdBy          User           @relation("TeacherQuizzes", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  quizQuestions QuizQuestion[]
+  attempts      Attempt[]
+  liveSessions  LiveSession[]
+
+  @@index([createdById, isPublished])
+}
+
+model QuizQuestion {
+  id         String   @id @default(uuid())
+  quizId     String
+  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  order      Int      @default(0)
+  points     Float    @default(1.0)
+
+  @@unique([quizId, questionId])
+  @@index([quizId])
+}
+
+model Attempt {
+  id          String    @id @default(uuid())
+  quizId      String
+  quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User      @relation("StudentAttempts", fields: [studentId], references: [id], onDelete: Cascade)
+  startTime   DateTime  @default(now())
+  submittedAt DateTime?
+  score       Float     @default(0)
+  totalPoints Float     @default(0)
+  percentage  Float     @default(0)
+  isPassed    Boolean   @default(false)
+  status      String    @default("IN_PROGRESS") // IN_PROGRESS, SUBMITTED, TIMED_OUT
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  answers       Answer[]
+  proctorEvents ProctorEvent[]
+
+  @@index([quizId, studentId, status])
+}
+
+model Answer {
+  id              String   @id @default(uuid())
+  attemptId       String
+  attempt         Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId      String
+  question        Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptions String   @default("[]") // JSON string of selected Option IDs
+  textAnswer      String?  // For SHORT_ANSWER
+  isCorrect       Boolean  @default(false)
+  pointsAwarded   Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  @@unique([attemptId, questionId])
+}
+
+model ProctorEvent {
+  id        String   @id @default(uuid())
+  attemptId String
+  attempt   Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  type      String   // TAB_SWITCH, WINDOW_BLUR, FULLSCREEN_EXIT, RESUME
+  metadata  String?  // JSON string e.g. { count: 1, duration: 3 }
+  createdAt DateTime @default(now())
+
+  @@index([attemptId])
+}
+
+model LiveSession {
+  id                   String    @id @default(uuid())
+  quizId               String
+  quiz                 Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  hostId               String
+  host                 User      @relation("HostLiveSessions", fields: [hostId], references: [id], onDelete: Cascade)
+  joinCode             String    @unique // 6-digit pin
+  status               String    @default("WAITING") // WAITING, ACTIVE, QUESTION_ACTIVE, SHOWING_LEADERBOARD, FINISHED
+  currentQuestionIndex Int       @default(0)
+  startedAt            DateTime?
+  endedAt              DateTime?
+  createdAt            DateTime  @default(now())
+
+  @@index([joinCode, status])
+}
