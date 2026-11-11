@@ -151,6 +151,22 @@ export async function joinLivePlayer(joinCode, playerId, name) {
     },
   });
 
+  // Increment session version so all SSE subscribers (host & players) get immediate notification
+  let currentMeta = {};
+  try {
+    currentMeta = JSON.parse(session.gameState || '{}');
+  } catch (e) {
+    currentMeta = {};
+  }
+  currentMeta.version = (currentMeta.version || 0) + 1;
+
+  await prisma.liveSession.update({
+    where: { id: session.id },
+    data: {
+      gameState: JSON.stringify(currentMeta),
+    },
+  });
+
   return player;
 }
 

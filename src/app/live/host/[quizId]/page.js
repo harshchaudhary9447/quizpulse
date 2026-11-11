@@ -42,6 +42,7 @@ export default function LiveHostPage() {
   const socketRef = useRef(null);
   const eventSourceRef = useRef(null);
   const timerIntervalRef = useRef(null);
+  const pollIntervalRef = useRef(null);
 
   // 1. Create live session and connect real-time streaming
   useEffect(() => {
@@ -51,6 +52,25 @@ export default function LiveHostPage() {
         const liveSession = res.data;
         setSession(liveSession);
         setJoinCode(liveSession.joinCode);
+
+        // Immediate fetch of current session state
+        try {
+          const freshRes = await api.get(`/live/state/${liveSession.joinCode}`);
+          if (freshRes.data?.players) {
+            setPlayers(freshRes.data.players);
+          }
+        } catch (e) {}
+
+        // Fallback polling every 1.5s to ensure lobby participants list stays strictly synced
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = setInterval(async () => {
+          try {
+            const freshRes = await api.get(`/live/state/${liveSession.joinCode}`);
+            if (freshRes.data?.players) {
+              setPlayers(freshRes.data.players);
+            }
+          } catch (e) {}
+        }, 1500);
 
         // Connect Server-Sent Events (SSE) for Vercel real-time streaming
         if (typeof window !== 'undefined' && window.EventSource) {
@@ -185,11 +205,13 @@ export default function LiveHostPage() {
       if (socketRef.current) socketRef.current.disconnect();
       if (eventSourceRef.current) eventSourceRef.current.close();
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, [quizId, user]);
 
   const handleStartGame = async () => {
     if (!joinCode) return;
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     try {
       await api.post('/live/action', { joinCode, action: 'START_GAME' });
       if (socketRef.current?.connected) {

@@ -37,6 +37,7 @@ export default function LiveJoinPage() {
   const socketRef = useRef(null);
   const eventSourceRef = useRef(null);
   const timerIntervalRef = useRef(null);
+  const pollIntervalRef = useRef(null);
   const questionStartTimeRef = useRef(null);
   const playerIdRef = useRef(null);
 
@@ -59,6 +60,7 @@ export default function LiveJoinPage() {
       if (socketRef.current) socketRef.current.disconnect();
       if (eventSourceRef.current) eventSourceRef.current.close();
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, []);
 
@@ -82,7 +84,17 @@ export default function LiveJoinPage() {
       setQuizTitle(verifyRes.data.quiz.title);
 
       if (!playerIdRef.current) {
-        playerIdRef.current = user?.id || `guest_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
+        const storageKey = `live_player_${cleanPin}`;
+        let savedId = typeof window !== 'undefined' ? sessionStorage.getItem(storageKey) : null;
+        if (!savedId) {
+          if (user?.role === 'STUDENT') {
+            savedId = user.id;
+          } else {
+            savedId = `p_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
+          }
+          if (typeof window !== 'undefined') sessionStorage.setItem(storageKey, savedId);
+        }
+        playerIdRef.current = savedId;
       }
       const stablePlayerId = playerIdRef.current;
 
@@ -93,6 +105,24 @@ export default function LiveJoinPage() {
 
       setJoined(true);
       setStage('WAITING');
+
+      // Fallback polling every 2s while waiting in lobby to ensure transition when game launches
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const freshRes = await api.get(`/live/state/${cleanPin}?playerId=${stablePlayerId}`);
+          const s = freshRes.data;
+          if (s) {
+            if (s.status === 'QUESTION_ACTIVE' && s.currentQuestion) {
+              if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+              setCurrentQuestion(s.currentQuestion);
+              setStage('QUESTION');
+            } else if (s.status === 'COUNTDOWN') {
+              setStage('COUNTDOWN');
+            }
+          }
+        } catch (e) {}
+      }, 2000);
 
       // 2. Connect Server-Sent Events (SSE) for Vercel real-time streaming
       if (typeof window !== 'undefined' && window.EventSource) {
@@ -112,6 +142,7 @@ export default function LiveJoinPage() {
             } else if (data.status === 'COUNTDOWN') {
               setStage('COUNTDOWN');
             } else if (data.status === 'QUESTION_ACTIVE' && data.currentQuestion) {
+              if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
               setCurrentQuestion((prevQ) => {
                 if (!prevQ || prevQ.id !== data.currentQuestion.id) {
                   setSelectedOptionId(null);

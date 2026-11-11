@@ -11,17 +11,20 @@ export async function GET(request, { params }) {
 
   const stream = new ReadableStream({
     async start(controller) {
-      let lastVersion = -1;
+      let lastSignature = '';
       let isClosed = false;
 
       const sendState = async () => {
         if (isClosed) return;
         try {
           const state = await getFullSessionState(joinCode, playerId);
-          if (state && state.version !== lastVersion) {
-            lastVersion = state.version;
-            const message = `data: ${JSON.stringify(state)}\n\n`;
-            controller.enqueue(encoder.encode(message));
+          if (state) {
+            const signature = `${state.version}_${state.status}_${state.players?.length || 0}_${state.answeredCount || 0}_${state.currentQuestionIndex}_${state.currentQuestion?.id || 'none'}`;
+            if (signature !== lastSignature) {
+              lastSignature = signature;
+              const message = `data: ${JSON.stringify(state)}\n\n`;
+              controller.enqueue(encoder.encode(message));
+            }
           }
         } catch (err) {
           // ignore transient db read error
@@ -31,8 +34,8 @@ export async function GET(request, { params }) {
       // Initial send
       await sendState();
 
-      // Poll interval
-      const intervalId = setInterval(sendState, 1000);
+      // Poll interval (every 800ms for smooth live responses)
+      const intervalId = setInterval(sendState, 800);
 
       request.signal.addEventListener('abort', () => {
         isClosed = true;
