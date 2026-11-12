@@ -8,6 +8,14 @@ import Footer from '../components/common/Footer';
 export const metadata = {
   title: 'QuizPulse — Modern Online Quiz Platform',
   description: 'Mobile-first, secure quiz and examination platform featuring strict server-side grading, live quizzing arenas, and anti-cheating proctoring.',
+  icons: {
+    icon: [
+      { url: '/logo.png', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export const viewport = {
